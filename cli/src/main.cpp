@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
     try {
         DiskDestroyer::Writer writer(argv[1], buf_size, verbose);
         writer.init();
-        writer((char*)DiskDestroyer::Config::ict);
+        writer((char*)DiskDestroyer::Config::guttman);
     } catch (DiskDestroyer::Gen::Err err) {
         switch (err) {
         case DiskDestroyer::Gen::Err::OPEN:

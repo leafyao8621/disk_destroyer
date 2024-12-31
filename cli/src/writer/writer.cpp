@@ -1,4 +1,6 @@
 #include <iostream>
+#include <iomanip>
+#include <cstring>
 
 #include "writer.h"
 
@@ -40,9 +42,23 @@ void DiskDestroyer::Writer::wr() {
     }
 }
 
+void DiskDestroyer::Writer::wr(char *config) {
+    size_t cnt = this->buf_size / *(unsigned char*)config;
+    size_t size = *(unsigned char*)config * cnt;
+    char *iter = this->buf;
+    for (size_t it = 0; it < cnt; ++it, iter += *(unsigned char*)config) {
+        memcpy(iter, config + 1, *(unsigned char*)config);
+    }
+    for (size_t i = 0; write(this->fd, this->buf, size) >= 0; ++i) {
+        if (this->verbose) {
+            std::cout << "Writing Block " << i << std::endl;
+        }
+    }
+}
+
 void DiskDestroyer::Writer::operator()(char *config) {
     size_t round = 0;
-    for (char *iter = config; *iter; ++round) {
+    for (char *iter = config; *iter; ++iter, ++round) {
         if (this->verbose) {
             std::cout << "Round " << round << std::endl;
         }
@@ -51,7 +67,20 @@ void DiskDestroyer::Writer::operator()(char *config) {
                 std::cout << "RANDOM" << std::endl;
             }
             this->wr();
-            ++iter;
+        } else {
+            if (this->verbose) {
+                std::cout << "PATTERN" << std::endl;
+                for (
+                    unsigned char i = 0, *ii = (unsigned char*)iter + 1;
+                    i < *(unsigned char*)iter;
+                    ++i, ++ii) {
+                    std::cout << std::setw(2) << std::setfill('0') <<
+                        std::hex << *ii;
+                }
+                std::cout << std::endl;
+            }
+            this->wr(iter);
+            iter += *(unsigned char*)iter;
         }
     }
 }
