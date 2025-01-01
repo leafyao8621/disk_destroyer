@@ -1,6 +1,7 @@
 #include <iostream>
-#include <iomanip>
+#include <cstdio>
 #include <cstring>
+#include <cstdint>
 
 #include "writer.h"
 
@@ -35,6 +36,7 @@ void DiskDestroyer::Writer::init() {
 
 void DiskDestroyer::Writer::wr() {
     this->gen(this->buf_size, this->buf);
+    lseek(this->fd, 0, SEEK_SET);
     for (size_t i = 0; write(this->fd, this->buf, this->buf_size) >= 0; ++i) {
         if (this->verbose) {
             std::cout << "Writing Block " << i << std::endl;
@@ -49,6 +51,7 @@ void DiskDestroyer::Writer::wr(char *config) {
     for (size_t it = 0; it < cnt; ++it, iter += *(unsigned char*)config) {
         memcpy(iter, config + 1, *(unsigned char*)config);
     }
+    lseek(this->fd, 0, SEEK_SET);
     for (size_t i = 0; write(this->fd, this->buf, size) >= 0; ++i) {
         if (this->verbose) {
             std::cout << "Writing Block " << i << std::endl;
@@ -74,8 +77,8 @@ void DiskDestroyer::Writer::operator()(char *config) {
                     unsigned char i = 0, *ii = (unsigned char*)iter + 1;
                     i < *(unsigned char*)iter;
                     ++i, ++ii) {
-                    std::cout << std::setw(2) << std::setfill('0') <<
-                        std::hex << *ii;
+                    snprintf(this->buf, 3, "%02hhX", *ii);
+                    std::cout << buf;
                 }
                 std::cout << std::endl;
             }
