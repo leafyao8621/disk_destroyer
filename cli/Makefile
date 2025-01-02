@@ -15,4 +15,4 @@ clean:
 	@rm $(OBJ)
 	@rm $(BIN)
 valgrind: $(BIN)
-	@valgrind -s --leak-check=full --show-leak-kinds=all ./$(BIN) -p test -v ~/dummy.img
+	@valgrind -s --leak-check=full --show-leak-kinds=all ./$(BIN) -p 0300020301ff01AAff -v ~/dummy.img

@@ -66,15 +66,21 @@ int main(int argc, char **argv) {
         try {
             pattern_compiled = rc_config[pattern];
         } catch (DiskDestroyer::Config::RCConfig::Err) {
-            pattern_compiled_raw =
-                DiskDestroyer::Config::Parser::parse((char*)pattern.c_str());
-            if (
-                !DiskDestroyer::Config::Parser::validate(
-                    pattern_compiled_raw)) {
+            try {
+                pattern_compiled_raw =
+                    DiskDestroyer::Config::Parser::parse(
+                        (char*)pattern.c_str());
+                if (
+                    !DiskDestroyer::Config::Parser::validate(
+                        pattern_compiled_raw)) {
+                    std::cerr << msg << std::endl;
+                    return -1;
+                }
+                pattern_compiled = pattern_compiled_raw.data();
+            } catch (DiskDestroyer::Config::Parser::Err) {
                 std::cerr << msg << std::endl;
                 return -1;
             }
-            pattern_compiled = pattern_compiled_raw.data();
         }
     }
     if (verbose) {
