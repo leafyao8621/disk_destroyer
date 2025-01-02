@@ -5,7 +5,7 @@ OBJ = $(SRC:.cpp=.o)
 BIN = dide
 
 %.o: %.cpp
-	$(CPP) $(CPPFLAGS) -g -c $< -o $@
+	$(CPP) $(CPPFLAGS) -O3 -c $< -o $@
 
 $(BIN): $(OBJ)
 	$(CPP) $(OBJ) -o $(BIN)
@@ -15,4 +15,4 @@ clean:
 	@rm $(OBJ)
 	@rm $(BIN)
 valgrind: $(BIN)
-	valgrind -s --leak-check=full --show-leak-kinds=all ./$(BIN) -v ~/dummy.img
+	@valgrind -s --leak-check=full --show-leak-kinds=all ./$(BIN) -p test -v ~/dummy.img

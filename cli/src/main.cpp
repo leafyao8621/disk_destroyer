@@ -1,6 +1,8 @@
 #include <iostream>
 
 #include "config/config.h"
+#include "config/rc_config.h"
+#include "config/parser.h"
 #include "writer/writer.h"
 
 const static char *msg =
@@ -11,7 +13,8 @@ const static char *msg =
     "-b <BLOCK SIZE>\n"
     "-p <PATTERN>\n"
     "    Acceptable values:\n"
-    "        itsg, ict, hmg_baseline, hmg_enhanced, guttman\n"
+    "        itsg, ict, hmg_baseline, hmg_enhanced, guttman,\n"
+    "        {RC pattern name}, {pattern}\n"
     "-v";
 
 int main(int argc, char **argv) {
@@ -46,7 +49,9 @@ int main(int argc, char **argv) {
         std::cerr << msg << std::endl;
         return -1;
     }
+    std::vector<char> pattern_compiled_raw;
     char *pattern_compiled = nullptr;
+    DiskDestroyer::Config::RCConfig rc_config;
     if (pattern == "itsg") {
         pattern_compiled = (char*)DiskDestroyer::Config::itsg;
     } else if (pattern == "ict") {
@@ -58,8 +63,23 @@ int main(int argc, char **argv) {
     } else if (pattern == "guttman") {
         pattern_compiled = (char*)DiskDestroyer::Config::guttman;
     } else {
-        std::cerr << msg << std::endl;
-        return -1;
+        try {
+            pattern_compiled = rc_config[pattern];
+        } catch (DiskDestroyer::Config::RCConfig::Err) {
+            pattern_compiled_raw =
+                DiskDestroyer::Config::Parser::parse((char*)pattern.c_str());
+            if (
+                !DiskDestroyer::Config::Parser::validate(
+                    pattern_compiled_raw)) {
+                std::cerr << msg << std::endl;
+                return -1;
+            }
+            pattern_compiled = pattern_compiled_raw.data();
+        }
+    }
+    if (verbose) {
+        std::cout << "PATTERN" << std::endl;
+        DiskDestroyer::Config::Parser::log(pattern_compiled, std::cout);
     }
     try {
         DiskDestroyer::Writer writer(argv[optind], buf_size, verbose);
