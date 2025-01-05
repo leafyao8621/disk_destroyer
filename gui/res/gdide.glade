@@ -25,6 +25,12 @@
       </row>
     </data>
   </object>
+  <object class="GtkListStore" id="rc_pattern_list_store">
+    <columns>
+      <!-- column-name pattern -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="window">
     <property name="width-request">640</property>
     <property name="height-request">480</property>
@@ -95,7 +101,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkRadioButton" id="custon_radio_button">
+                      <object class="GtkRadioButton" id="custom_radio_button">
                         <property name="label" translatable="yes">Custom</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -110,17 +116,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="custom_entry">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">2</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBox">
+                      <object class="GtkComboBox" id="built_in_combo_box">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="model">built_in_pattern_liststore</property>
@@ -140,21 +136,34 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBox">
+                      <object class="GtkComboBox" id="rc_combo_box">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="model">rc_pattern_list_store</property>
+                        <property name="button-sensitivity">off</property>
                         <property name="has-entry">True</property>
                         <property name="entry-text-column">0</property>
                         <child internal-child="entry">
                           <object class="GtkEntry" id="rc_entry">
                             <property name="can-focus">False</property>
                             <property name="editable">False</property>
+                            <property name="placeholder-text" translatable="yes">Please select a pattern</property>
                           </object>
                         </child>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="custom_entry">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">2</property>
                       </packing>
                     </child>
                   </object>

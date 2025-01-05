@@ -15,6 +15,10 @@ namespace DiskDestroyer {
             };
             RCConfig();
             char *operator[](std::string key);
+            auto begin() { return this->lookup.begin(); };
+            auto begin() const { return this->lookup.begin(); };
+            auto end(){ return this->lookup.end(); };
+            auto end() const { return this->lookup.end(); };
         };
     }
 }
