@@ -221,21 +221,6 @@
           </packing>
         </child>
         <child>
-          <object class="GtkTextView" id="log_text_view">
-            <property name="width-request">640</property>
-            <property name="height-request">370</property>
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="editable">False</property>
-            <property name="cursor-visible">False</property>
-            <property name="accepts-tab">False</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">2</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkButton" id="run_button">
             <property name="label" translatable="yes">Run</property>
             <property name="visible">True</property>
@@ -245,6 +230,26 @@
           <packing>
             <property name="left-attach">0</property>
             <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="width-request">640</property>
+            <property name="height-request">370</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="shadow-type">in</property>
+            <child>
+              <object class="GtkTextView" id="log_text_view">
+                <property name="name">log_text_view</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">2</property>
           </packing>
         </child>
       </object>

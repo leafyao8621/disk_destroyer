@@ -1,3 +1,8 @@
+#include <iostream>
+#include <sstream>
+
+#include "../backend/config/config.h"
+#include "../backend/config/parser.h"
 #include "app.h"
 
 void GDiskDestroyer::App::build_window(char *name) {
@@ -67,7 +72,37 @@ void custom_radio_button_toggled(
     app->set_custom();
 }
 
+void GDiskDestroyer::App::set_pattern_compiled(char *pattern_compiled) {
+    this->pattern_compiled = pattern_compiled;
+}
+
+char *GDiskDestroyer::App::get_pattern_compiled() {
+    return this->pattern_compiled;
+}
+
+void GDiskDestroyer::App::set_log(char *log) {
+    GtkTextIter start, end;
+    gtk_text_buffer_get_start_iter(this->log_text_buffer, &start);
+    gtk_text_buffer_get_end_iter(this->log_text_buffer, &end);
+    gtk_text_buffer_delete(this->log_text_buffer, &start, &end);
+    gtk_text_buffer_insert(this->log_text_buffer, &start, log, -1);
+}
+
+void builtin_combo_box_changed(GtkComboBox *combo_box, gpointer *data) {
+    GDiskDestroyer::App *app = (GDiskDestroyer::App*)data;
+    app->set_pattern_compiled(
+        (char*)
+            DiskDestroyer::Config::config[
+                gtk_combo_box_get_active(combo_box)
+            ]
+    );
+    std::ostringstream oss;
+    DiskDestroyer::Config::Parser::log(app->get_pattern_compiled(), oss);
+    app->set_log((char*)oss.str().c_str());
+}
+
 GDiskDestroyer::App::App(int *argc, char ***argv) {
+    ready = false;
     gtk_init(argc, argv);
     this->builder = gtk_builder_new();
     this->build_window((char*)"/com/example/gdide/gdide.glade");
@@ -85,6 +120,12 @@ GDiskDestroyer::App::App(int *argc, char ***argv) {
         GTK_COMBO_BOX(this->get_object((char*)"rc_combo_box"));
     this->custom_entry =
         GTK_ENTRY(this->get_object((char*)"custom_entry"));
+    this->log_text_buffer =
+        gtk_text_view_get_buffer(
+            GTK_TEXT_VIEW(
+                this->get_object((char*)"log_text_view")
+            )
+        );
 }
 
 void GDiskDestroyer::App::init() {
@@ -111,6 +152,12 @@ void GDiskDestroyer::App::init() {
         custom_radio_button,
         "toggled",
         G_CALLBACK(custom_radio_button_toggled),
+        this
+    );
+    g_signal_connect(
+        built_in_combo_box,
+        "changed",
+        G_CALLBACK(builtin_combo_box_changed),
         this
     );
     gtk_window_present(this->window);

@@ -19,7 +19,10 @@ namespace GDiskDestroyer {
         GtkComboBox *built_in_combo_box;
         GtkComboBox *rc_combo_box;
         GtkEntry *custom_entry;
+        GtkTextBuffer *log_text_buffer;
         DiskDestroyer::Config::RCConfig rc_config;
+        bool ready;
+        char *pattern_compiled;
         void build_window(char *name);
         GObject *get_object(char *name);
     public:
@@ -29,6 +32,10 @@ namespace GDiskDestroyer {
         void set_built_in();
         void set_rc();
         void set_custom();
+        void set_pattern_compiled(char *pattern_compiled);
+        char *get_pattern_compiled();
+        void set_log(char *log);
+        void append_log();
         App(int *argc, char ***argv);
         void init();
     public:

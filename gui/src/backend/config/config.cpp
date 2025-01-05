@@ -34,3 +34,11 @@ const char *DiskDestroyer::Config::guttman =
     "\x03\xB6\xDB\x6D"
     "\x03\xDB\x6D\xB6"
     "\xFF\xFF\xFF\xFF";
+
+const char *DiskDestroyer::Config::config[5] = {
+    itsg,
+    ict,
+    hmg_baseline,
+    hmg_enhanced,
+    guttman
+};

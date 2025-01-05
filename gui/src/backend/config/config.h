@@ -8,6 +8,7 @@ namespace DiskDestroyer {
         extern const char *hmg_baseline;
         extern const char *hmg_enhanced;
         extern const char *guttman;
+        extern const char *config[5];
     }
 }
 
