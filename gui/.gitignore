@@ -1,3 +1,4 @@
 *.o
 gdide
 .vscode
+res_out/*.cpp

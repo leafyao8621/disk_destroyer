@@ -1,5 +1,5 @@
-#ifndef GEN_GEN_H_
-#define GEN_GEN_H_
+#ifndef BACKEND_GEN_GEN_H_
+#define BACKEND_GEN_GEN_H_
 
 #include <unistd.h>
 #include <fcntl.h>

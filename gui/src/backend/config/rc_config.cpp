@@ -1,10 +1,10 @@
-#include "rc_config.h"
-#include "parser.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+
+#include "rc_config.h"
+#include "parser.h"
 
 DiskDestroyer::Config::RCConfig::RCConfig() {
     std::ostringstream oss;

@@ -1,5 +1,5 @@
-#ifndef CONFIG_RC_CONFIG_H_
-#define CONFIG_RC_CONFIG_H_
+#ifndef BACKEND_CONFIG_RC_CONFIG_H_
+#define BACKEND_CONFIG_RC_CONFIG_H_
 
 #include <unordered_map>
 #include <vector>

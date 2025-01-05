@@ -1,5 +1,5 @@
-#ifndef WRITER_WRITER_H_
-#define WRITER_WRITER_H_
+#ifndef BACKEND_WRITER_WRITER_H_
+#define BACKEND_WRITER_WRITER_H_
 
 #include <string>
 
