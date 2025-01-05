@@ -8,30 +8,18 @@
 
 namespace GDiskDestroyer {
     class App {
-        class Window {
-        protected:
-            App *app;
-            GObject *window;
-            GError *error;
-        public:
-            Window(App *app, char *name);
-            ~Window() {};
-            virtual void init() = 0;
-        };
-        class MainWindow : public Window {
-        public:
-            MainWindow(App *app);
-            void init();
-        };
         GtkBuilder *builder;
-        std::vector<std::unique_ptr<Window> > window;
+        GError *error;
+        GObject *window;
     public:
         enum Err {
             WINDOW_CREATE
         };
         App(int *argc, char ***argv);
-        void build_window(char *name, GError *error);
+    private:
+        void build_window(char *name);
         GObject *get_object(char *name);
+    public:
         void operator()();
     };
 }

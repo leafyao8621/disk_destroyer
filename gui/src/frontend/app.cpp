@@ -3,18 +3,18 @@
 GDiskDestroyer::App::App(int *argc, char ***argv) {
     gtk_init(argc, argv);
     this->builder = gtk_builder_new();
-    this->window.push_back(
-        std::make_unique<MainWindow>(this)
-    );
-    this->window.back()->init();
+    this->build_window("/com/example/gdide/gdide.glade");
+    this->window = this->get_object("window");
+    g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+    gtk_window_present(GTK_WINDOW(this->window));
 }
 
-void GDiskDestroyer::App::build_window(char *name, GError *error) {
+void GDiskDestroyer::App::build_window(char *name) {
     if (
         !gtk_builder_add_from_resource(
             this->builder,
             name,
-            &error
+            &this->error
         )) {
         throw Err::WINDOW_CREATE;
     }
@@ -29,6 +29,5 @@ GObject *GDiskDestroyer::App::get_object(char *name) {
 }
 
 void GDiskDestroyer::App::operator()() {
-    g_print("%s\n", "run");
     gtk_main();
 }

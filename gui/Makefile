@@ -25,7 +25,7 @@ $(BIN): $(OBJ) $(RES_OUT)
 .PHONY: clean all
 all: $(BIN)
 valgrind: all
-	@sudo valgrind -s --leak-check=full ./$(BIN)
+	@valgrind -s --leak-check=full ./$(BIN)
 clean:
 	@rm $(OBJ)
 	@rm $(BIN)
