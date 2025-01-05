@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <memory>
+#include <thread>
+#include <list>
 
 #include <gtk-3.0/gtk/gtk.h>
 
@@ -19,10 +21,17 @@ namespace GDiskDestroyer {
         GtkComboBox *built_in_combo_box;
         GtkComboBox *rc_combo_box;
         GtkEntry *custom_entry;
+        GtkTextView *log_text_view;
         GtkTextBuffer *log_text_buffer;
+        GtkEntry *block_entry;
+        GtkFileChooserButton *device_file_chooser_button;
+        GtkButton *run_button;
         DiskDestroyer::Config::RCConfig rc_config;
-        bool ready;
         char *pattern_compiled;
+        size_t buf_size;
+        std::string file_name;
+        std::thread worker;
+        std::list<std::string> messenger;
         void build_window(char *name);
         GObject *get_object(char *name);
     public:
@@ -34,8 +43,15 @@ namespace GDiskDestroyer {
         void set_custom();
         void set_pattern_compiled(char *pattern_compiled);
         char *get_pattern_compiled();
+        void set_buf_size(size_t buf_size);
+        size_t get_buf_size();
+        void set_file_name(std::string file_name);
+        std::string get_file_name();
         void set_log(char *log);
         void append_log();
+        void run_success();
+        void run_failure();
+        void launch();
         App(int *argc, char ***argv);
         void init();
     public:

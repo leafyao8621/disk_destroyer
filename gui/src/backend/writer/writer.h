@@ -2,8 +2,11 @@
 #define BACKEND_WRITER_WRITER_H_
 
 #include <string>
+#include <list>
+#include <sstream>
 
 #include "../gen/gen.h"
+#include "../../frontend/app.h"
 
 namespace DiskDestroyer {
     class Writer {
@@ -12,13 +15,19 @@ namespace DiskDestroyer {
         size_t buf_size;
         char *buf;
         Gen gen;
-        bool verbose;
+        GtkWindow *window;
+        std::list<std::string> *messenger;
+        std::ostringstream oss;
     public:
         enum Err {
             OPEN,
             MEM
         };
-        Writer(std::string file_name, size_t buf_size, bool verbose);
+        Writer(
+            std::string file_name,
+            size_t buf_size,
+            GtkWindow *window,
+            std::list<std::string> *messenger);
         ~Writer();
         void init();
     private:

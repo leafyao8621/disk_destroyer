@@ -3,15 +3,20 @@
 #include <cstring>
 #include <cstdint>
 
+#include <gtk-3.0/gtk/gtk.h>
 #include "writer.h"
 
 DiskDestroyer::Writer::Writer(
-    std::string file_name, size_t buf_size, bool verbose) {
+    std::string file_name,
+    size_t buf_size,
+    GtkWindow *window,
+    std::list<std::string> *messenger) {
     this->file_name = file_name;
     this->fd = -1;
     this->buf_size = buf_size;
     this->buf = nullptr;
-    this->verbose = verbose;
+    this->window = window;
+    this->messenger = messenger;
 }
 
 DiskDestroyer::Writer::~Writer() {
@@ -38,9 +43,10 @@ void DiskDestroyer::Writer::wr() {
     this->gen(this->buf_size, this->buf);
     lseek(this->fd, 0, SEEK_SET);
     for (size_t i = 0; write(this->fd, this->buf, this->buf_size) >= 0; ++i) {
-        if (this->verbose) {
-            std::cout << "Writing Block " << i << std::endl;
-        }
+        this->oss.clear();
+        oss << "Writing Block " << i << std::endl;
+        // messenger->push_back(oss.str());
+        // g_signal_emit_by_name(this->window, "append-log");
     }
 }
 
@@ -53,35 +59,36 @@ void DiskDestroyer::Writer::wr(char *config) {
     }
     lseek(this->fd, 0, SEEK_SET);
     for (size_t i = 0; write(this->fd, this->buf, size) >= 0; ++i) {
-        if (this->verbose) {
-            std::cout << "Writing Block " << i << std::endl;
-        }
+        this->oss.clear();
+        oss << "Writing Block " << i << std::endl;
+        // messenger->push_back(oss.str());
+        // g_signal_emit_by_name(this->window, "append-log");
     }
 }
 
 void DiskDestroyer::Writer::operator()(char *config) {
     size_t round = 0;
     for (char *iter = config; *iter; ++iter, ++round) {
-        if (this->verbose) {
-            std::cout << "Round " << round << std::endl;
-        }
+        this->oss.clear();
+        this->oss << "Round " << round << std::endl;
         if (*iter == -1) {
-            if (this->verbose) {
-                std::cout << "RANDOM" << std::endl;
-            }
+            this->oss << "RANDOM" << std::endl;
+            messenger->push_back(oss.str());
+            g_print("%s\n", "sending");
+            g_signal_emit_by_name(this->window, "append-log");
             this->wr();
         } else {
-            if (this->verbose) {
-                std::cout << "PATTERN" << std::endl;
-                for (
-                    unsigned char i = 0, *ii = (unsigned char*)iter + 1;
-                    i < *(unsigned char*)iter;
-                    ++i, ++ii) {
-                    snprintf(this->buf, 3, "%02hhX", *ii);
-                    std::cout << buf;
-                }
-                std::cout << std::endl;
+            this->oss << "PATTERN" << std::endl;
+            for (
+                unsigned char i = 0, *ii = (unsigned char*)iter + 1;
+                i < *(unsigned char*)iter;
+                ++i, ++ii) {
+                snprintf(this->buf, 3, "%02hhX", *ii);
+                this->oss << buf;
             }
+            this->oss << std::endl;
+            messenger->push_back(oss.str());
+            g_signal_emit_by_name(this->window, "append-log");
             this->wr(iter);
             iter += *(unsigned char*)iter;
         }
