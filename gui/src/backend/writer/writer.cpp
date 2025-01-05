@@ -45,8 +45,8 @@ void DiskDestroyer::Writer::wr() {
     for (size_t i = 0; write(this->fd, this->buf, this->buf_size) >= 0; ++i) {
         this->oss.clear();
         oss << "Writing Block " << i << std::endl;
-        // messenger->push_back(oss.str());
-        // g_signal_emit_by_name(this->window, "append-log");
+        messenger->push_back(oss.str());
+        g_signal_emit_by_name(this->window, "append-log");
     }
 }
 
@@ -61,8 +61,8 @@ void DiskDestroyer::Writer::wr(char *config) {
     for (size_t i = 0; write(this->fd, this->buf, size) >= 0; ++i) {
         this->oss.clear();
         oss << "Writing Block " << i << std::endl;
-        // messenger->push_back(oss.str());
-        // g_signal_emit_by_name(this->window, "append-log");
+        messenger->push_back(oss.str());
+        g_signal_emit_by_name(this->window, "append-log");
     }
 }
 
@@ -74,7 +74,6 @@ void DiskDestroyer::Writer::operator()(char *config) {
         if (*iter == -1) {
             this->oss << "RANDOM" << std::endl;
             messenger->push_back(oss.str());
-            g_print("%s\n", "sending");
             g_signal_emit_by_name(this->window, "append-log");
             this->wr();
         } else {

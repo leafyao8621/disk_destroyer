@@ -186,6 +186,7 @@ void GDiskDestroyer::App::launch() {
         GTK_WIDGET(this->custom_radio_button),
         false
     );
+    this->set_log((char*)"");
     this->worker =
         std::thread(
             [=]() {
@@ -197,6 +198,7 @@ void GDiskDestroyer::App::launch() {
                         &this->messenger
                     );
                     writer.init();
+                    DiskDestroyer::Config::Parser::log(this->pattern_compiled, std::cout);
                     writer((char*)this->pattern_compiled);
                     g_signal_emit_by_name(
                         this->window, "run-success");
@@ -400,7 +402,7 @@ void GDiskDestroyer::App::init() {
     g_signal_new(
         "append-log",
         G_TYPE_OBJECT,
-        G_SIGNAL_RUN_FIRST,
+        G_SIGNAL_ACTION,
         0,
         0,
         0,
@@ -417,7 +419,7 @@ void GDiskDestroyer::App::init() {
     g_signal_new(
         "run-success",
         G_TYPE_OBJECT,
-        G_SIGNAL_RUN_FIRST,
+        G_SIGNAL_ACTION,
         0,
         0,
         0,
@@ -434,7 +436,7 @@ void GDiskDestroyer::App::init() {
     g_signal_new(
         "run-failure",
         G_TYPE_OBJECT,
-        G_SIGNAL_RUN_FIRST,
+        G_SIGNAL_ACTION,
         0,
         0,
         0,
