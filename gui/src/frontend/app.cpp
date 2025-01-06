@@ -142,16 +142,20 @@ void device_file_chooser_button_file_set(
     app->set_log((char*)"Device set");
 }
 
+void GDiskDestroyer::App::set_message(std::string message) {
+    this->message = message;
+}
+
 void GDiskDestroyer::App::append_log() {
+    g_mutex_lock(&this->mutex_interface);
     GtkTextIter end;
     gtk_text_buffer_get_end_iter(this->log_text_buffer, &end);
     gtk_text_buffer_insert(
         this->log_text_buffer,
         &end,
-        this->messenger.front().c_str(),
+        this->message.c_str(),
         -1
     );
-    this->messenger.pop_front();
     gtk_text_buffer_get_end_iter(this->log_text_buffer, &end);
     gtk_text_view_scroll_to_iter(
         this->log_text_view,
@@ -161,9 +165,24 @@ void GDiskDestroyer::App::append_log() {
         0,
         1
     );
+    g_mutex_unlock(&this->mutex_interface);
+}
+
+int run_success_idle(gpointer data) {
+    GDiskDestroyer::App *app = (GDiskDestroyer::App*)data;
+    app->run_success();
+    return 0;
+}
+
+int run_failure_idle(gpointer data) {
+    GDiskDestroyer::App *app = (GDiskDestroyer::App*)data;
+    app->run_failure();
+    return 0;
 }
 
 void GDiskDestroyer::App::launch() {
+    this->stop = false;
+    this->stop_confirmed = false;
     gtk_combo_box_set_button_sensitivity(
         this->built_in_combo_box, GTK_SENSITIVITY_OFF);
     gtk_combo_box_set_button_sensitivity(
@@ -186,6 +205,14 @@ void GDiskDestroyer::App::launch() {
         GTK_WIDGET(this->custom_radio_button),
         false
     );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->device_file_chooser_button),
+        false
+    );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->halt_button),
+        true
+    );
     this->set_log((char*)"");
     this->worker =
         std::thread(
@@ -194,21 +221,21 @@ void GDiskDestroyer::App::launch() {
                     DiskDestroyer::Writer writer(
                         this->file_name,
                         this->buf_size,
-                        this->window,
-                        &this->messenger
+                        this
                     );
                     writer.init();
-                    DiskDestroyer::Config::Parser::log(this->pattern_compiled, std::cout);
                     writer((char*)this->pattern_compiled);
-                    g_signal_emit_by_name(
-                        this->window, "run-success");
+                    if (this->stop) {
+                        this->stop_confirmed = true;
+                        return;
+                    }
+                    g_idle_add(run_success_idle, this);
                 } catch (DiskDestroyer::Gen::Err) {
-                    g_signal_emit_by_name(
-                        this->window, "run-failure");
+                    g_idle_add(run_failure_idle, this);
                 } catch (DiskDestroyer::Writer::Err) {
-                    g_signal_emit_by_name(
-                        this->window, "run-failure");
+                    g_idle_add(run_failure_idle, this);
                 }
+                this->stop_confirmed = true;
             }
         );
     this->worker.detach();
@@ -217,11 +244,6 @@ void GDiskDestroyer::App::launch() {
 void run_button_clicked(GtkButton *button, gpointer data) {
     GDiskDestroyer::App *app = (GDiskDestroyer::App*)data;
     app->launch();
-}
-
-void append_log_handler(GtkWindow *window, gpointer data) {
-    GDiskDestroyer::App *app = (GDiskDestroyer::App*)data;
-    app->append_log();
 }
 
 void GDiskDestroyer::App::run_success() {
@@ -259,13 +281,15 @@ void GDiskDestroyer::App::run_success() {
         GTK_WIDGET(this->custom_radio_button),
         true
     );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->device_file_chooser_button),
+        true
+    );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->halt_button),
+        false
+    );
     this->set_log((char*)"Success");
-}
-
-
-void run_success_handler(GtkWindow *window, gpointer data) {
-    GDiskDestroyer::App *app = (GDiskDestroyer::App*)data;
-    app->run_success();
 }
 
 void GDiskDestroyer::App::run_failure() {
@@ -303,23 +327,91 @@ void GDiskDestroyer::App::run_failure() {
         GTK_WIDGET(this->custom_radio_button),
         true
     );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->device_file_chooser_button),
+        true
+    );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->halt_button),
+        false
+    );
     this->set_log((char*)"Failure");
 }
 
-void run_failure_handler(GtkWindow *window, gpointer data) {
+bool GDiskDestroyer::App::get_stop() {
+    return this->stop;
+}
+
+void GDiskDestroyer::App::halt() {
+    this->stop = true;
+    for (; !this->stop_confirmed;) {
+        for (; gtk_events_pending(); gtk_main_iteration());
+    }
+    gtk_combo_box_set_button_sensitivity(
+        this->built_in_combo_box,
+        gtk_toggle_button_get_active(
+            GTK_TOGGLE_BUTTON(this->built_in_radio_button)
+        ) ? GTK_SENSITIVITY_AUTO : GTK_SENSITIVITY_OFF
+    );
+    gtk_combo_box_set_button_sensitivity(
+        this->rc_combo_box,
+        gtk_toggle_button_get_active(
+            GTK_TOGGLE_BUTTON(this->rc_radio_button)
+        ) ? GTK_SENSITIVITY_AUTO : GTK_SENSITIVITY_OFF
+    );
+    gtk_editable_set_editable(
+        GTK_EDITABLE(this->custom_entry),
+        gtk_toggle_button_get_active(
+            GTK_TOGGLE_BUTTON(this->built_in_radio_button)
+        )
+    );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->run_button),
+        true
+    );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->built_in_radio_button),
+        true
+    );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->rc_radio_button),
+        true
+    );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->custom_radio_button),
+        true
+    );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->device_file_chooser_button),
+        true
+    );
+    gtk_widget_set_sensitive(
+        GTK_WIDGET(this->halt_button),
+        false
+    );
+    this->set_log((char*)"Halted");
+}
+
+void halt_button_clicked(GtkButton *button, gpointer data) {
     GDiskDestroyer::App *app = (GDiskDestroyer::App*)data;
-    app->run_failure();
+    app->halt();
 }
 
 GDiskDestroyer::App::App(int *argc, char ***argv) {
     this->buf_size = 4096;
     this->pattern_compiled = (char*)"";
     this->file_name = "";
+    this->stop_confirmed = true;
     gtk_init(argc, argv);
     this->builder = gtk_builder_new();
     this->build_window((char*)"/com/example/gdide/gdide.glade");
     this->window = GTK_WINDOW(this->get_object((char*)"window"));
-    g_signal_connect(this->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+    g_signal_connect(
+        this->window,
+        "destroy",
+        gtk_main_quit,
+        this
+    );
     this->built_in_radio_button =
         GTK_RADIO_BUTTON(this->get_object((char*)"built_in_radio_button"));
     this->rc_radio_button =
@@ -343,6 +435,12 @@ GDiskDestroyer::App::App(int *argc, char ***argv) {
             this->get_object((char*)"device_file_chooser_button")
         );
     this->run_button = GTK_BUTTON(this->get_object((char*)"run_button"));
+    this->halt_button = GTK_BUTTON(this->get_object((char*)"halt_button"));
+}
+
+GDiskDestroyer::App::~App() {
+    this->stop = true;
+    for (; !this->stop_confirmed;);
 }
 
 void GDiskDestroyer::App::init() {
@@ -399,55 +497,10 @@ void GDiskDestroyer::App::init() {
         G_CALLBACK(run_button_clicked),
         this
     );
-    g_signal_new(
-        "append-log",
-        G_TYPE_OBJECT,
-        G_SIGNAL_ACTION,
-        0,
-        0,
-        0,
-        0,
-        G_TYPE_NONE,
-        0
-    );
     g_signal_connect(
-        window,
-        "append-log",
-        G_CALLBACK(append_log_handler),
-        this
-    );
-    g_signal_new(
-        "run-success",
-        G_TYPE_OBJECT,
-        G_SIGNAL_ACTION,
-        0,
-        0,
-        0,
-        0,
-        G_TYPE_NONE,
-        0
-    );
-    g_signal_connect(
-        window,
-        "run-success",
-        G_CALLBACK(run_success_handler),
-        this
-    );
-    g_signal_new(
-        "run-failure",
-        G_TYPE_OBJECT,
-        G_SIGNAL_ACTION,
-        0,
-        0,
-        0,
-        0,
-        G_TYPE_NONE,
-        0
-    );
-    g_signal_connect(
-        window,
-        "run-failure",
-        G_CALLBACK(run_failure_handler),
+        this->halt_button,
+        "clicked",
+        G_CALLBACK(halt_button_clicked),
         this
     );
     gtk_window_present(this->window);

@@ -52,7 +52,7 @@
                 <property name="can-focus">False</property>
                 <child>
                   <object class="GtkLabel">
-                    <property name="width-request">120</property>
+                    <property name="width-request">40</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Pattern</property>
@@ -65,7 +65,7 @@
                 <child>
                   <!-- n-columns=2 n-rows=3 -->
                   <object class="GtkGrid">
-                    <property name="width-request">200</property>
+                    <property name="width-request">280</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <child>
@@ -172,6 +172,7 @@
                 </child>
                 <child>
                   <object class="GtkLabel">
+                    <property name="width-request">40</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Block</property>
@@ -183,6 +184,7 @@
                 </child>
                 <child>
                   <object class="GtkEntry" id="block_entry">
+                    <property name="width-request">280</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="text" translatable="yes">4096</property>
@@ -241,18 +243,6 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="run_button">
-            <property name="label" translatable="yes">Run</property>
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">1</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkScrolledWindow">
             <property name="width-request">640</property>
             <property name="height-request">400</property>
@@ -272,6 +262,43 @@
           <packing>
             <property name="left-attach">0</property>
             <property name="top-attach">2</property>
+          </packing>
+        </child>
+        <child>
+          <!-- n-columns=1 n-rows=2 -->
+          <object class="GtkGrid">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkButton" id="run_button">
+                <property name="label" translatable="yes">Run</property>
+                <property name="width-request">645</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="halt_button">
+                <property name="label" translatable="yes">Halt</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">1</property>
           </packing>
         </child>
       </object>

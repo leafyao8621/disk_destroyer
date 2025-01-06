@@ -25,13 +25,15 @@ namespace GDiskDestroyer {
         GtkTextBuffer *log_text_buffer;
         GtkEntry *block_entry;
         GtkFileChooserButton *device_file_chooser_button;
-        GtkButton *run_button;
+        GtkButton *run_button, *halt_button;
         DiskDestroyer::Config::RCConfig rc_config;
         char *pattern_compiled;
         size_t buf_size;
         std::string file_name;
         std::thread worker;
-        std::list<std::string> messenger;
+        std::string message;
+        bool stop, stop_confirmed;
+        GMutex mutex_interface;
         void build_window(char *name);
         GObject *get_object(char *name);
     public:
@@ -48,11 +50,15 @@ namespace GDiskDestroyer {
         void set_file_name(std::string file_name);
         std::string get_file_name();
         void set_log(char *log);
+        void set_message(std::string message);
         void append_log();
         void run_success();
         void run_failure();
+        bool get_stop();
         void launch();
+        void halt();
         App(int *argc, char ***argv);
+        ~App();
         void init();
     public:
         void operator()();

@@ -15,9 +15,7 @@ namespace DiskDestroyer {
         size_t buf_size;
         char *buf;
         Gen gen;
-        GtkWindow *window;
-        std::list<std::string> *messenger;
-        std::ostringstream oss;
+        GDiskDestroyer::App *app;
     public:
         enum Err {
             OPEN,
@@ -26,8 +24,7 @@ namespace DiskDestroyer {
         Writer(
             std::string file_name,
             size_t buf_size,
-            GtkWindow *window,
-            std::list<std::string> *messenger);
+            GDiskDestroyer::App *app);
         ~Writer();
         void init();
     private:

@@ -9,14 +9,12 @@
 DiskDestroyer::Writer::Writer(
     std::string file_name,
     size_t buf_size,
-    GtkWindow *window,
-    std::list<std::string> *messenger) {
+    GDiskDestroyer::App *app) {
     this->file_name = file_name;
     this->fd = -1;
     this->buf_size = buf_size;
     this->buf = nullptr;
-    this->window = window;
-    this->messenger = messenger;
+    this->app = app;
 }
 
 DiskDestroyer::Writer::~Writer() {
@@ -39,14 +37,23 @@ void DiskDestroyer::Writer::init() {
     this->gen.init();
 }
 
+int append_log(gpointer data) {
+    GDiskDestroyer::App *app = (GDiskDestroyer::App*)data;
+    app->append_log();
+    return 0;
+}
+
 void DiskDestroyer::Writer::wr() {
     this->gen(this->buf_size, this->buf);
     lseek(this->fd, 0, SEEK_SET);
     for (size_t i = 0; write(this->fd, this->buf, this->buf_size) >= 0; ++i) {
-        this->oss.clear();
+        if (this->app->get_stop()) {
+            return;
+        }
+        std::ostringstream oss;
         oss << "Writing Block " << i << std::endl;
-        messenger->push_back(oss.str());
-        g_signal_emit_by_name(this->window, "append-log");
+        this->app->set_message(oss.str());
+        g_idle_add(append_log, this->app);
     }
 }
 
@@ -59,35 +66,41 @@ void DiskDestroyer::Writer::wr(char *config) {
     }
     lseek(this->fd, 0, SEEK_SET);
     for (size_t i = 0; write(this->fd, this->buf, size) >= 0; ++i) {
-        this->oss.clear();
+        if (this->app->get_stop()) {
+            return;
+        }
+        std::ostringstream oss;
         oss << "Writing Block " << i << std::endl;
-        messenger->push_back(oss.str());
-        g_signal_emit_by_name(this->window, "append-log");
+        this->app->set_message(oss.str());
+        g_idle_add(append_log, this->app);
     }
 }
 
 void DiskDestroyer::Writer::operator()(char *config) {
     size_t round = 0;
     for (char *iter = config; *iter; ++iter, ++round) {
-        this->oss.clear();
-        this->oss << "Round " << round << std::endl;
+        if (this->app->get_stop()) {
+            return;
+        }
+        std::ostringstream oss;
+        oss << "Round " << round << std::endl;
         if (*iter == -1) {
-            this->oss << "RANDOM" << std::endl;
-            messenger->push_back(oss.str());
-            g_signal_emit_by_name(this->window, "append-log");
+            oss << "RANDOM" << std::endl;
+            this->app->set_message(oss.str());
+            g_idle_add(append_log, this->app);
             this->wr();
         } else {
-            this->oss << "PATTERN" << std::endl;
+            oss << "PATTERN" << std::endl;
             for (
                 unsigned char i = 0, *ii = (unsigned char*)iter + 1;
                 i < *(unsigned char*)iter;
                 ++i, ++ii) {
                 snprintf(this->buf, 3, "%02hhX", *ii);
-                this->oss << buf;
+                oss << buf;
             }
-            this->oss << std::endl;
-            messenger->push_back(oss.str());
-            g_signal_emit_by_name(this->window, "append-log");
+            oss << std::endl;
+            this->app->set_message(oss.str());
+            g_idle_add(append_log, this->app);
             this->wr(iter);
             iter += *(unsigned char*)iter;
         }
