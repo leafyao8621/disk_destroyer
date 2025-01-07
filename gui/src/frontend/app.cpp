@@ -234,8 +234,10 @@ void GDiskDestroyer::App::launch() {
                     g_idle_add(run_failure_idle, this);
                 } catch (DiskDestroyer::Writer::Err) {
                     g_idle_add(run_failure_idle, this);
+                } finally {
+                    this->stop_confirmed = true;
                 }
-                this->stop_confirmed = true;
+
             }
         );
     this->worker.detach();
