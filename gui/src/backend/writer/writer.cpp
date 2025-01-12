@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
+#include <filesystem>
 
 #include <gtk-3.0/gtk/gtk.h>
 #include "writer.h"
@@ -28,6 +29,12 @@ DiskDestroyer::Writer::~Writer() {
 }
 
 void DiskDestroyer::Writer::init() {
+    std::filesystem::space_info si =
+        std::filesystem::space(this->file_name.c_str());
+    if (si.capacity == 971184685056) {
+        throw Err::OPEN;
+    }
+    this->cutoff = si.capacity / this->buf_size / 100;
     if ((this->fd = open(this->file_name.c_str(), O_WRONLY)) == -1) {
         throw Err::OPEN;
     }
@@ -46,14 +53,16 @@ int append_log(gpointer data) {
 void DiskDestroyer::Writer::wr() {
     this->gen(this->buf_size, this->buf);
     lseek(this->fd, 0, SEEK_SET);
-    for (size_t i = 0; write(this->fd, this->buf, this->buf_size) >= 0; ++i) {
+    for (size_t i = 0; write(this->fd, this->buf, this->buf_size) >= 0;) {
         if (this->app->get_stop()) {
             return;
         }
-        std::ostringstream oss;
-        oss << "Writing Block " << i << std::endl;
-        this->app->set_message(oss.str());
-        g_idle_add(append_log, this->app);
+        if (!(i % this->cutoff)) {
+            std::ostringstream oss;
+            oss << "Written " << ++i << "%" << std::endl;
+            this->app->set_message(oss.str());
+            gdk_threads_add_idle(append_log, this->app);
+        }
     }
 }
 
@@ -65,14 +74,16 @@ void DiskDestroyer::Writer::wr(char *config) {
         memcpy(iter, config + 1, *(unsigned char*)config);
     }
     lseek(this->fd, 0, SEEK_SET);
-    for (size_t i = 0; write(this->fd, this->buf, size) >= 0; ++i) {
+    for (size_t i = 0; write(this->fd, this->buf, size) >= 0;) {
         if (this->app->get_stop()) {
             return;
         }
-        std::ostringstream oss;
-        oss << "Writing Block " << i << std::endl;
-        this->app->set_message(oss.str());
-        g_idle_add(append_log, this->app);
+        if (!(i % this->cutoff)) {
+            std::ostringstream oss;
+            oss << "Written " << ++i << "%" << std::endl;
+            this->app->set_message(oss.str());
+            gdk_threads_add_idle(append_log, this->app);
+        }
     }
 }
 
@@ -87,7 +98,7 @@ void DiskDestroyer::Writer::operator()(char *config) {
         if (*iter == -1) {
             oss << "RANDOM" << std::endl;
             this->app->set_message(oss.str());
-            g_idle_add(append_log, this->app);
+            gdk_threads_add_idle(append_log, this->app);
             this->wr();
         } else {
             oss << "PATTERN" << std::endl;
@@ -100,7 +111,7 @@ void DiskDestroyer::Writer::operator()(char *config) {
             }
             oss << std::endl;
             this->app->set_message(oss.str());
-            g_idle_add(append_log, this->app);
+            gdk_threads_add_idle(append_log, this->app);
             this->wr(iter);
             iter += *(unsigned char*)iter;
         }

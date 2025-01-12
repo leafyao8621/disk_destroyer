@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <filesystem>
 
 #include "../backend/config/config.h"
 #include "../backend/config/parser.h"
@@ -139,7 +140,17 @@ void device_file_chooser_button_file_set(
             )
         )
     );
-    app->set_log((char*)"Device set");
+
+    std::error_code ec;
+    std::filesystem::space_info si =
+        std::filesystem::space(app->get_file_name(), ec);
+    if (si.capacity == 971184685056) {
+        app->set_log((char*)"Invalid device");
+    } else {
+        std::ostringstream oss;
+        oss << "Device set\n" << "Capacity " << si.capacity;
+        app->set_log((char*)oss.str().c_str());
+    }
 }
 
 void GDiskDestroyer::App::set_message(std::string message) {
@@ -180,6 +191,36 @@ int run_failure_idle(gpointer data) {
     return 0;
 }
 
+void GDiskDestroyer::App::set_stop_confirmed() {
+    this->stop_confirmed = true;
+}
+
+void *worker_callback(gpointer data) {
+    GDiskDestroyer::App *app = (GDiskDestroyer::App*)data;
+    try {
+        DiskDestroyer::Writer writer(
+            app->get_file_name(),
+            app->get_buf_size(),
+            app
+        );
+        writer.init();
+        writer((char*)app->get_pattern_compiled());
+        if (app->get_stop()) {
+            app->set_stop_confirmed();
+            g_print("ENd");
+            return 0;
+        }
+        g_idle_add(run_success_idle, app);
+    } catch (DiskDestroyer::Gen::Err) {
+        g_idle_add(run_failure_idle, app);
+    } catch (DiskDestroyer::Writer::Err) {
+        g_idle_add(run_failure_idle, app);
+    }
+    app->set_stop_confirmed();
+    g_print("End");
+    return 0;
+}
+
 void GDiskDestroyer::App::launch() {
     this->stop = false;
     this->stop_confirmed = false;
@@ -214,33 +255,7 @@ void GDiskDestroyer::App::launch() {
         true
     );
     this->set_log((char*)"");
-    this->worker =
-        std::thread(
-            [=]() {
-                try {
-                    DiskDestroyer::Writer writer(
-                        this->file_name,
-                        this->buf_size,
-                        this
-                    );
-                    writer.init();
-                    writer((char*)this->pattern_compiled);
-                    if (this->stop) {
-                        this->stop_confirmed = true;
-                        return;
-                    }
-                    g_idle_add(run_success_idle, this);
-                } catch (DiskDestroyer::Gen::Err) {
-                    g_idle_add(run_failure_idle, this);
-                } catch (DiskDestroyer::Writer::Err) {
-                    g_idle_add(run_failure_idle, this);
-                } finally {
-                    this->stop_confirmed = true;
-                }
-
-            }
-        );
-    this->worker.detach();
+    this->worker = g_thread_new("worker", worker_callback, this);
 }
 
 void run_button_clicked(GtkButton *button, gpointer data) {
@@ -292,6 +307,8 @@ void GDiskDestroyer::App::run_success() {
         false
     );
     this->set_log((char*)"Success");
+    g_thread_join(this->worker);
+    this->worker = 0;
 }
 
 void GDiskDestroyer::App::run_failure() {
@@ -338,6 +355,8 @@ void GDiskDestroyer::App::run_failure() {
         false
     );
     this->set_log((char*)"Failure");
+    g_thread_join(this->worker);
+    this->worker = 0;
 }
 
 bool GDiskDestroyer::App::get_stop() {
@@ -345,10 +364,12 @@ bool GDiskDestroyer::App::get_stop() {
 }
 
 void GDiskDestroyer::App::halt() {
+    g_print("halt\n");
     this->stop = true;
     for (; !this->stop_confirmed;) {
         for (; gtk_events_pending(); gtk_main_iteration());
     }
+    g_print("halt confirm\n");
     gtk_combo_box_set_button_sensitivity(
         this->built_in_combo_box,
         gtk_toggle_button_get_active(
@@ -392,6 +413,9 @@ void GDiskDestroyer::App::halt() {
         false
     );
     this->set_log((char*)"Halted");
+    g_print("join");
+    g_thread_join(this->worker);
+    this->worker = 0;
 }
 
 void halt_button_clicked(GtkButton *button, gpointer data) {
@@ -403,7 +427,9 @@ GDiskDestroyer::App::App(int *argc, char ***argv) {
     this->buf_size = 4096;
     this->pattern_compiled = (char*)"";
     this->file_name = "";
+    this->stop = true;
     this->stop_confirmed = true;
+    this->worker = 0;
     gtk_init(argc, argv);
     this->builder = gtk_builder_new();
     this->build_window((char*)"/com/example/gdide/gdide.glade");
@@ -438,11 +464,6 @@ GDiskDestroyer::App::App(int *argc, char ***argv) {
         );
     this->run_button = GTK_BUTTON(this->get_object((char*)"run_button"));
     this->halt_button = GTK_BUTTON(this->get_object((char*)"halt_button"));
-}
-
-GDiskDestroyer::App::~App() {
-    this->stop = true;
-    for (; !this->stop_confirmed;);
 }
 
 void GDiskDestroyer::App::init() {

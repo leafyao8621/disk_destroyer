@@ -14,6 +14,7 @@ namespace DiskDestroyer {
         int fd;
         size_t buf_size;
         char *buf;
+        size_t cutoff;
         Gen gen;
         GDiskDestroyer::App *app;
     public:

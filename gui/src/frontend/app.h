@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <memory>
-#include <thread>
 #include <list>
 
 #include <gtk-3.0/gtk/gtk.h>
@@ -30,9 +29,9 @@ namespace GDiskDestroyer {
         char *pattern_compiled;
         size_t buf_size;
         std::string file_name;
-        std::thread worker;
         std::string message;
         bool stop, stop_confirmed;
+        GThread *worker;
         GMutex mutex_interface;
         void build_window(char *name);
         GObject *get_object(char *name);
@@ -55,10 +54,10 @@ namespace GDiskDestroyer {
         void run_success();
         void run_failure();
         bool get_stop();
+        void set_stop_confirmed();
         void launch();
         void halt();
         App(int *argc, char ***argv);
-        ~App();
         void init();
     public:
         void operator()();
