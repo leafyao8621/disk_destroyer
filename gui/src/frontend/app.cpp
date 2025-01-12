@@ -1,6 +1,8 @@
 #include <iostream>
 #include <sstream>
-#include <filesystem>
+
+#include <sys/ioctl.h>
+#include <linux/fs.h>
 
 #include "../backend/config/config.h"
 #include "../backend/config/parser.h"
@@ -141,20 +143,25 @@ void device_file_chooser_button_file_set(
         )
     );
 
-    std::error_code ec;
-    std::filesystem::space_info si =
-        std::filesystem::space(app->get_file_name(), ec);
-    if (si.capacity == 971184685056) {
+    size_t sz = 0;
+    int fd = open(app->get_file_name().c_str(), O_RDONLY);
+    if (fd == -1) {
+        app->set_log((char*)"Invalid device");
+        return;
+    }
+    ioctl(fd, BLKGETSIZE64, &sz);
+    close(fd);
+    if (!sz) {
         app->set_log((char*)"Invalid device");
     } else {
         std::ostringstream oss;
-        oss << "Device set\n" << "Capacity " << si.capacity;
+        oss << "Device set\n" << "Capacity " << sz;
         app->set_log((char*)oss.str().c_str());
     }
 }
 
 void GDiskDestroyer::App::set_message(std::string message) {
-    this->message = message;
+    this->message.push_back(message);
 }
 
 void GDiskDestroyer::App::append_log() {
@@ -164,9 +171,10 @@ void GDiskDestroyer::App::append_log() {
     gtk_text_buffer_insert(
         this->log_text_buffer,
         &end,
-        this->message.c_str(),
+        this->message.front().c_str(),
         -1
     );
+    this->message.pop_front();
     gtk_text_buffer_get_end_iter(this->log_text_buffer, &end);
     gtk_text_view_scroll_to_iter(
         this->log_text_view,
@@ -207,7 +215,6 @@ void *worker_callback(gpointer data) {
         writer((char*)app->get_pattern_compiled());
         if (app->get_stop()) {
             app->set_stop_confirmed();
-            g_print("ENd");
             return 0;
         }
         g_idle_add(run_success_idle, app);
@@ -217,7 +224,6 @@ void *worker_callback(gpointer data) {
         g_idle_add(run_failure_idle, app);
     }
     app->set_stop_confirmed();
-    g_print("End");
     return 0;
 }
 
@@ -364,12 +370,10 @@ bool GDiskDestroyer::App::get_stop() {
 }
 
 void GDiskDestroyer::App::halt() {
-    g_print("halt\n");
     this->stop = true;
     for (; !this->stop_confirmed;) {
         for (; gtk_events_pending(); gtk_main_iteration());
     }
-    g_print("halt confirm\n");
     gtk_combo_box_set_button_sensitivity(
         this->built_in_combo_box,
         gtk_toggle_button_get_active(
@@ -413,7 +417,6 @@ void GDiskDestroyer::App::halt() {
         false
     );
     this->set_log((char*)"Halted");
-    g_print("join");
     g_thread_join(this->worker);
     this->worker = 0;
 }

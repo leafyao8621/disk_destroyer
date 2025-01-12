@@ -11,6 +11,7 @@ namespace DiskDestroyer {
         int fd;
         size_t buf_size;
         char *buf;
+        size_t cutoff;
         Gen gen;
         bool verbose;
     public:

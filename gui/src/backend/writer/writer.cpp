@@ -2,7 +2,9 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
-#include <filesystem>
+
+#include <sys/ioctl.h>
+#include <linux/fs.h>
 
 #include <gtk-3.0/gtk/gtk.h>
 #include "writer.h"
@@ -29,15 +31,15 @@ DiskDestroyer::Writer::~Writer() {
 }
 
 void DiskDestroyer::Writer::init() {
-    std::filesystem::space_info si =
-        std::filesystem::space(this->file_name.c_str());
-    if (si.capacity == 971184685056) {
+    if ((this->fd = open(this->file_name.c_str(), O_RDWR | O_SYNC)) == -1) {
         throw Err::OPEN;
     }
-    this->cutoff = si.capacity / this->buf_size / 100;
-    if ((this->fd = open(this->file_name.c_str(), O_WRONLY)) == -1) {
+    size_t sz = 0;
+    ioctl(fd, BLKGETSIZE64, &sz);
+    if (!sz) {
         throw Err::OPEN;
     }
+    this->cutoff = sz / this->buf_size / 100;
     if (!(this->buf = new char[this->buf_size])) {
         throw Err::MEM;
     }
@@ -53,15 +55,18 @@ int append_log(gpointer data) {
 void DiskDestroyer::Writer::wr() {
     this->gen(this->buf_size, this->buf);
     lseek(this->fd, 0, SEEK_SET);
-    for (size_t i = 0; write(this->fd, this->buf, this->buf_size) >= 0;) {
+    for (
+        size_t i = 0, j = 0;
+        write(this->fd, this->buf, this->buf_size) >= 0;
+        ++j) {
         if (this->app->get_stop()) {
             return;
         }
-        if (!(i % this->cutoff)) {
+        if (!(j % this->cutoff)) {
             std::ostringstream oss;
             oss << "Written " << ++i << "%" << std::endl;
             this->app->set_message(oss.str());
-            gdk_threads_add_idle(append_log, this->app);
+            g_idle_add(append_log, this->app);
         }
     }
 }
@@ -74,15 +79,18 @@ void DiskDestroyer::Writer::wr(char *config) {
         memcpy(iter, config + 1, *(unsigned char*)config);
     }
     lseek(this->fd, 0, SEEK_SET);
-    for (size_t i = 0; write(this->fd, this->buf, size) >= 0;) {
+    for (
+        size_t i = 0, j = 0;
+        write(this->fd, this->buf, this->buf_size) >= 0;
+        ++j) {
         if (this->app->get_stop()) {
             return;
         }
-        if (!(i % this->cutoff)) {
+        if (!(j % this->cutoff)) {
             std::ostringstream oss;
             oss << "Written " << ++i << "%" << std::endl;
             this->app->set_message(oss.str());
-            gdk_threads_add_idle(append_log, this->app);
+            g_idle_add(append_log, this->app);
         }
     }
 }
@@ -98,7 +106,7 @@ void DiskDestroyer::Writer::operator()(char *config) {
         if (*iter == -1) {
             oss << "RANDOM" << std::endl;
             this->app->set_message(oss.str());
-            gdk_threads_add_idle(append_log, this->app);
+            g_idle_add(append_log, this->app);
             this->wr();
         } else {
             oss << "PATTERN" << std::endl;
@@ -111,7 +119,7 @@ void DiskDestroyer::Writer::operator()(char *config) {
             }
             oss << std::endl;
             this->app->set_message(oss.str());
-            gdk_threads_add_idle(append_log, this->app);
+            g_idle_add(append_log, this->app);
             this->wr(iter);
             iter += *(unsigned char*)iter;
         }

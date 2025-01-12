@@ -29,7 +29,7 @@ namespace GDiskDestroyer {
         char *pattern_compiled;
         size_t buf_size;
         std::string file_name;
-        std::string message;
+        std::list<std::string> message;
         bool stop, stop_confirmed;
         GThread *worker;
         GMutex mutex_interface;

@@ -1,7 +1,11 @@
 #include <iostream>
+#include <iomanip>
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
+
+#include <sys/ioctl.h>
+#include <linux/fs.h>
 
 #include "writer.h"
 
@@ -25,9 +29,18 @@ DiskDestroyer::Writer::~Writer() {
 }
 
 void DiskDestroyer::Writer::init() {
-    if ((this->fd = open(this->file_name.c_str(), O_WRONLY)) == -1) {
+    if ((this->fd = open(this->file_name.c_str(), O_RDWR | O_SYNC)) == -1) {
         throw Err::OPEN;
     }
+    size_t sz = 0;
+    ioctl(fd, BLKGETSIZE64, &sz);
+    if (!sz) {
+        throw Err::OPEN;
+    }
+    if (this->verbose) {
+        std::cout << "Capacity " << sz << std::endl;
+    }
+    this->cutoff = sz / this->buf_size / 100;
     if (!(this->buf = new char[this->buf_size])) {
         throw Err::MEM;
     }
@@ -37,9 +50,14 @@ void DiskDestroyer::Writer::init() {
 void DiskDestroyer::Writer::wr() {
     this->gen(this->buf_size, this->buf);
     lseek(this->fd, 0, SEEK_SET);
-    for (size_t i = 0; write(this->fd, this->buf, this->buf_size) >= 0; ++i) {
-        if (this->verbose) {
-            std::cout << "Writing Block " << i << std::endl;
+    for (
+        size_t i = 0, j = 0;
+        write(this->fd, this->buf, this->buf_size) >= 0;
+        ++j) {
+        if (this->verbose && !(j % this->cutoff)) {
+            std::cout << "Written " <<
+                std::setfill('0') << std::setw(3) << ++i <<
+                "%" << std::endl;
         }
     }
 }
@@ -52,9 +70,14 @@ void DiskDestroyer::Writer::wr(char *config) {
         memcpy(iter, config + 1, *(unsigned char*)config);
     }
     lseek(this->fd, 0, SEEK_SET);
-    for (size_t i = 0; write(this->fd, this->buf, size) >= 0; ++i) {
-        if (this->verbose) {
-            std::cout << "Writing Block " << i << std::endl;
+    for (
+        size_t i = 0, j = 0;
+        write(this->fd, this->buf, size) >= 0;
+        ++j) {
+        if (this->verbose && !(j % this->cutoff)) {
+            std::cout << "Written " <<
+                std::setfill('0') << std::setw(3) << ++i <<
+                "%" << std::endl;
         }
     }
 }
