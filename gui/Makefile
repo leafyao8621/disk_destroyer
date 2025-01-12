@@ -22,10 +22,11 @@ $(RES_OUT): $(RES_OUT_SRC)
 $(BIN): $(OBJ) $(RES_OUT)
 	$(CC) $(GTK) $(OBJ) $(LIB) $(RES_OUT) -o $(BIN)
 
-.PHONY: clean all
+.PHONY: clean all install
 all: $(BIN)
-valgrind: all
-	@valgrind -s --leak-check=full ./$(BIN)
+install: all
+	@cp $(BIN) /usr/local/bin
+	@cp desktop/gdide.desktop /usr/share/applications
 clean:
 	@rm $(OBJ)
 	@rm $(BIN)
